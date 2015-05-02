@@ -1,83 +1,82 @@
 #!/usr/bin/env python
 
-def data_filter(index,value,dataset,mask):
-	filtered=[data for data in dataset if data[index]==value]
+import sys
 
-	mask[index]=value
+def check(candidate,answers):
+	for index,answer in answers.items():
+		if (answer==1 or answer==0) and candidate[index]!=answer:
+			return False
+	return True
 
-	if len(filtered):
-		for i in range(len(mask)):
-			if mask[i]!=-1:	# Decided
-				continue
+def eliminate(candidates,answers,dataset):
+	return filter(lambda candidate:check(dataset[candidate],answers),candidates)
 
-			for data in filtered:
-				if data[i]!=filtered[0][i]:
-					break
-			else:
-				mask[i]=filtered[0][i]
+def select(candidates,answers,dataset):
+	if not candidates or not dataset:
+		return -1
 
-	return filtered,mask
+	certainty=[]
+	for candidate in candidates:
+		features=dataset[candidate]
+		certainty+=[0]*(len(features)-len(certainty))
 
-def most_uncertain(dataset):
-	length=len(dataset[0])
-	uncertainty=[0]*length
-	for data in dataset:
-		for i in range(length):
-			uncertainty[i]+=1 if data[i] else -1
+		for i in range(len(features)):
+			if features[i]==1:
+				certainty[i]+=1
+			elif features[i]==0:
+				certainty[i]-=1
 
-	uncertainty=[abs(x) for x in uncertainty]
-	minimal=min(uncertainty)
+	certainty=[abs(x) for x in certainty]
 
-	return uncertainty.index(minimal)
+	for i,answer in answers.items():
+		certainty[i]=123#sys.maxint
+
+	print 'Certainty: '+str(certainty)
+	if min(certainty)==len(candidates):
+		return -1
+	else:
+		return certainty.index(min(certainty))
+
+def ask(n,question):
+	print 'Q{0}: {1}'.format(n,question)
+
+	while True:
+		answer=raw_input()
+		if answer=='y':
+			return 1
+		elif answer=='n':
+			return 0
+		elif answer=='d':
+			return -1
+		else:
+			print 'Please input \'y\', \'n\' or \'d\'.'
 
 if __name__=='__main__':
 	import dataset
 
 	questions,labels,features=dataset.load()
 
-	print 'Please think of an object in your mind.'
-	print 'Then answer questions with "y", "n", "d" (don\'t know) or i (irrelevant).'
+	print 'Please think of a figure or an object in your mind.'
+	print 'Then answer questions with "y", "n" or "d" (don\'t know).'
 	print 'Press ENTER to continue.'
 	raw_input()
 
 	answers={}
+	candidates=[n for n in range(len(labels))]
 
-	qn=0;
+	n=0
 	while True:
-		if len(dataset)==1:
-			break
-	
-		i=most_uncertain(dataset)
-
-		qn+=1
-		print 'Q'+str(qn)+': '+questions[i]
-
-		while True:
-			answer=raw_input()
-			if answer=='y':
-				value=1
-				break
-			elif answer=='n':
-				value=0
-				break
-			else:
-				print 'Please input \'y\' or \'n\'.'
-
-		dataset,mask=data_filter(i,value,dataset,mask)
-
-		if len(dataset)==0:
+		index=select(candidates,answers,features)
+		if index==-1:
 			break
 
-		for bit in mask:
-			if bit!=-1:
-				break
-		else:
-			break
+		n+=1
+		answers[index]=ask(n,questions[index])
+		candidates=eliminate(candidates,answers,features)
+		print candidates
 
-	if dataset:
-		for label,data in zip(labels,_dataset):
-			if data==dataset[0]:
-				print 'My guess is: '+label
+	if candidates:
+		print 'My guess is: '+labels[candidates[0]]
 	else:
 		print 'Unknown'
 

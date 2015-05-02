@@ -7,8 +7,6 @@ def conv_load(attribute):
 		return 0
 	elif attribute=='1':
 		return 1
-	elif attribute=='n':	# N/A
-		return -2
 	else:	# ? or other things
 		return -1
 
@@ -17,8 +15,6 @@ def conv_save(attribute):
 		return '0'
 	elif attribute==1:
 		return '1'
-	elif attribute==-2:	# N/A
-		return 'n'
 	else:	# ? or other things
 		return '?'
 
