@@ -33,8 +33,8 @@ def select(candidates,answers,dataset):
 		combined[index]=len(candidates)
 		certainty[index]=len(candidates)
 
-	print 'Certainty: '+str(certainty)
-	print 'Combined: '+str(combined)
+	#print 'Certainty: '+str(certainty)
+	#print 'Combined: '+str(combined)
 	if min(combined)==len(candidates):
 		if len(candidates)!=1 and min(certainty)!=len(candidates) and min(certainty)!=0:
 			for index in range(len(certainty)):
@@ -106,7 +106,7 @@ if __name__=='__main__':
 		answers[index]=ask(n,questions[index])
 		if answers[index]!=-1:
 			candidates=eliminate(candidates,answers,dataset)
-		print candidates
+		#print candidates
 
 	matches=match(candidates,answers,dataset)
 	print 'My guess is: '+labels[matches[0]]
@@ -125,6 +125,7 @@ if __name__=='__main__':
 		
 		if label==labels[matches[0]]:
 			print 'DEBUG: malicious user.'
+			print 'Thank you for playing!'
 			exit()
 
 		for candidate in candidates:
@@ -150,6 +151,7 @@ if __name__=='__main__':
 		else:
 			if label in labels:
 				print 'DEBUG: malicious user.'
+				print 'Thank you for playing!'
 				exit()
 			else:
 				result=[-1]*len(dataset[0]) if dataset else []
