@@ -37,10 +37,49 @@ def get_unknowns(features,answers):
 			res.append(i)
 	return res
 
-def update(item,answers):
+def learn(answers,candidates,label,labels,questions,dataset):
+	# New data
+	if label not in labels:
+		labels.append(label)
+
+		feature=[-1]*len(dataset[0])
+		dataset.append(feature)
+	else:
+		# Existing data
+		i=labels.index(label)
+		if i in candidates:
+			feature=dataset[i]
+		else:
+			print 'DEBUG: malicious user'
+			return
+
+	# Ask about unknown attributes
+	global n
+	n=0
+	unknowns=get_unknowns(feature,answers)
+	if unknowns:
+		print 'Please answer several questions about '+label+'.'
+		for i in unknowns:
+			answers[i]=ask(i)
+			if n>=cfg.max_questions:
+				break
+
+	# Input a new question to distinguish the object
+	if n<cfg.max_questions:
+		print 'Please input a question that is true for '+label+':'
+		question=raw_input().strip()
+		questions.append(question)
+
+		for data in dataset:
+			data.append(-1)
+		feature[-1]=1
+
+	merge_answer(feature,answers)
+
+def merge_answer(feature,answers):
 	for index,answer in answers.items():
 		if answer!=-1:
-			item[index]=answer
+			feature[index]=answer
 
 def match(candidates,answers,dataset):
 	res=[]
@@ -77,19 +116,22 @@ if __name__=='__main__':
 	correct=ask2('Am I correct? (y/n):')
 	if correct:
 		result=dataset[best_match]
-		update(result,answers)
+		merge_answer(result,answers)
 		data.save(cfg.questions,labels,dataset)
 		print 'Thank you for playing!'
 		exit()
 
 	candidates,answers=round_B(answers,dataset)
 
+	if best_match in candidates:
+		candidates.remove(best_match)
+
 	best_match=match(candidates,answers,dataset)
 	print 'My guess is: '+labels[best_match]
 	correct=ask2('Am I correct? (y/n):')
 	if correct:
 		result=dataset[best_match]
-		update(result,answers)
+		merge_answer(result,answers)
 		data.save(cfg.questions,labels,dataset)
 		print 'Thank you for playing!'
 		exit()
@@ -100,37 +142,7 @@ if __name__=='__main__':
 		print 'Thank you for playing!'
 		exit()
 
-	if label not in labels:
-		labels.append(label)
-		dataset.append(result)
-		result=[-1]*len(dataset[0])
-		update(result,answers)
-		data.save(cfg.questions,labels,dataset)
-		print 'Thank you for playing!'
-		exit()
+	learn(answers,candidates,label,labels,cfg.questions,dataset)
 
-	i=labels.index(label)
-	if i in candidates:
-		attrs=get_unknowns(dataset[i],answers)
-		if attrs:
-			print 'Please answer several questions about '+label+'.'
-			n=0
-			for index in attrs:
-				answers[index]=ask(index)
-				if n>=cfg.max_questions:
-					break
-		else:
-			print 'Please input a question that is true for '+label+':'
-			question=raw_input().strip()
-			cfg.questions.append(question)
-			for item in dataset:
-				item.append(-1)
-			dataset[i][-1]=1
-
-		update(dataset[i],answers)
-		data.save(cfg.questions,labels,dataset)
-		print 'Thank you for playing!'
-	else:
-		print 'DEBUG: malicious user'
-		print 'Thank you for playing!'
-		exit(0)
+	data.save(cfg.questions,labels,dataset)
+	print 'Thank you for playing!'
