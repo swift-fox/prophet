@@ -8,6 +8,8 @@ def check(candidate,answers):
 	return True
 
 def eliminate(candidates,answers,dataset):
+	#print 'Candidates:'+str(candidates)
+	#print 'Answer:'+str(answers)
 	return filter(lambda candidate:check(dataset[candidate],answers),candidates)
 
 def select(candidates,answers,dataset):
@@ -28,8 +30,8 @@ def select(candidates,answers,dataset):
 
 	certainty=[abs(x) for x in certainty]
 
-	print 'Certainty: '+str(certainty)
-	print 'Unknown: '+str(unknown)
+	#print 'Certainty: '+str(certainty)
+	#print 'Unknown: '+str(unknown)
 
 	weighted=[c+u for c,u in zip(certainty,unknown)]
 
@@ -63,7 +65,7 @@ def round_A(candidates,answers,dataset):
 		if answers[index]!=-1:
 			candidates=eliminate(candidates,answers,dataset)
 
-		print candidates
+		#print candidates
 	return candidates,answers
 
 def distance(a,b):
@@ -77,6 +79,7 @@ def round_B(answers,dataset):
 	vector=[-1]*len(dataset[0]) if dataset else []
 	for index,answer in answers.items():
 		vector[index]=answer
+		answers[index]=-1
 
 	candidates=[i for i,data in enumerate(dataset) if distance(vector,data)<=cfg.distance]
 	print "Round B candidates:"+str(candidates)
