@@ -1,53 +1,13 @@
 #!/usr/bin/env python
 
-import sys
+import config as cfg
 
-def check(candidate,answers):
-	for index,answer in answers.items():
-		if answer!=-1 and candidate[index]!=-1 and candidate[index]!=answer:
-			return False
-	return True
+n=0
 
-def eliminate(candidates,answers,dataset):
-	return filter(lambda candidate:check(dataset[candidate],answers),candidates)
-
-def select(candidates,answers,dataset):
-	certainty=[0]*len(dataset[0])
-	unknown=[0]*len(dataset[0])
-
-	for candidate in candidates:
-		features=dataset[candidate]
-
-		for i in range(len(features)):
-			if features[i]==1:
-				certainty[i]+=1
-			elif features[i]==0:
-				certainty[i]-=1
-			else:
-				unknown[i]+=1
-
-	certainty=[abs(x) for x in certainty]
-	combined=[abs(x)+u for x,u in zip(certainty,unknown)]
-
-	for index,answer in answers.items():
-		combined[index]=len(candidates)
-		certainty[index]=len(candidates)
-
-	#print 'Certainty: '+str(certainty)
-	#print 'Combined: '+str(combined)
-	if min(combined)==len(candidates):
-		if len(candidates)!=1 and min(certainty)!=len(candidates) and min(certainty)!=0:
-			for index in range(len(certainty)):
-				if certainty[index]==len(candidates):
-					certainty[index]=0
-			return certainty.index(max(certainty))
-		else:
-			return -1
-	else:
-		return combined.index(min(combined))
-
-def ask(n,question):
-	print 'Q{0}: {1}'.format(n,question)
+def ask(index):
+	global n
+	n+=1
+	print 'Q{0}: {1}'.format(n,cfg.questions[index])
 
 	while True:
 		answer=raw_input().strip()
@@ -59,6 +19,16 @@ def ask(n,question):
 			return -1
 		else:
 			print 'Please input \'y\', \'n\' or \'d\'.'
+
+def ask2(question):
+	answer=raw_input(question)
+	while True:
+		if answer=='y' or answer=='':
+			return 1
+		elif answer=='n':
+			return 0
+		else:
+			answer=raw_input('Please input \'y\' or \'n\':')
 
 def get_unknowns(features,answers):
 	res=[]
@@ -80,84 +50,87 @@ def match(candidates,answers,dataset):
 			if answer==dataset[candidate][index]:
 				matches+=1
 		res.append((matches,candidate))
-	return [c for m,c in sorted(res,reverse=True)]
+	match_list=[c for m,c in sorted(res,reverse=True)]
+	return match_list[0]
 
 if __name__=='__main__':
 	import data
-	import config as cfg
+	from core import round_A,round_B
 
-	questions,labels,dataset=data.load()
+	cfg.questions,labels,dataset=data.load()
 
 	print 'Please think of a figure or an object in your mind.'
 	print 'Then answer questions with "y", "n" or "d" (don\'t know).'
 	print 'Press ENTER to continue.'
 	raw_input()
 
-	answers={}
-	candidates=[n for n in range(len(labels))]
+	candidates=[x for x in range(len(labels))]
+	candidates,answers=round_A(candidates,{},dataset)
 
-	n=0
-	while True:
-		index=select(candidates,answers,dataset)
-		if index==-1:
-			break
+	if max(answers.values())==-1:
+		print 'I don\'t know what do you know.'
+		print 'Thank you for playing!'
+		exit()
 
-		n+=1
-		answers[index]=ask(n,questions[index])
-		if answers[index]!=-1:
-			candidates=eliminate(candidates,answers,dataset)
-		#print candidates
+	best_match=match(candidates,answers,dataset)
+	print 'My guess is: '+labels[best_match]
+	correct=ask2('Am I correct? (y/n):')
+	if correct:
+		result=dataset[best_match]
+		update(result,answers)
+		data.save(cfg.questions,labels,dataset)
+		print 'Thank you for playing!'
+		exit()
 
-	matches=match(candidates,answers,dataset)
-	print 'My guess is: '+labels[matches[0]]
-	answer=raw_input('Am I correct? (y/n):')
-	while True:
-		if answer=='y' or answer=='n':
-			break
+	candidates,answers=round_B(answers,dataset)
+
+	best_match=match(candidates,answers,dataset)
+	print 'My guess is: '+labels[best_match]
+	correct=ask2('Am I correct? (y/n):')
+	if correct:
+		result=dataset[best_match]
+		update(result,answers)
+		data.save(cfg.questions,labels,dataset)
+		print 'Thank you for playing!'
+		exit()
+
+	print 'Please tell me what you think:'
+	label=raw_input()
+	if label==labels[best_match]:
+		print 'Thank you for playing!'
+		exit()
+
+	if label not in labels:
+		labels.append(label)
+		dataset.append(result)
+		result=[-1]*len(dataset[0])
+		update(result,answers)
+		data.save(cfg.questions,labels,dataset)
+		print 'Thank you for playing!'
+		exit()
+
+	i=labels.index(label)
+	if i in candidates:
+		attrs=get_unknowns(dataset[i],answers)
+		if attrs:
+			print 'Please answer several questions about '+label+'.'
+			n=0
+			for index in attrs:
+				answers[index]=ask(index)
+				if n>=cfg.max_questions:
+					break
 		else:
-			answer=raw_input('Please input \'y\' or \'n\':')
+			print 'Please input a question that is true for '+label+':'
+			question=raw_input().strip()
+			cfg.questions.append(question)
+			for item in dataset:
+				item.append(-1)
+			dataset[i][-1]=1
 
-	if answer=='y':
-		result=dataset[candidates[0]]
+		update(dataset[i],answers)
+		data.save(cfg.questions,labels,dataset)
+		print 'Thank you for playing!'
 	else:
-		print 'Please tell me what you think:'
-		label=raw_input()
-		
-		if label==labels[matches[0]]:
-			print 'DEBUG: malicious user.'
-			print 'Thank you for playing!'
-			exit()
-
-		for candidate in candidates:
-			if label==labels[candidate]:
-				attrs=get_unknowns(dataset[candidate],answers)
-				if attrs:
-					print 'Please answer several questions about '+label+'.'
-					n=0
-					for index in attrs:
-						n+=1
-						answers[index]=ask(n,questions[index])
-						if n>=cfg.max_questions:
-							break
-				else:
-					print 'Please input a question that is true for '+label+':'
-					question=raw_input().strip()
-					questions.append(question)
-					for item in dataset:
-						item.append(-1)
-					dataset[candidate][-1]=1
-				result=dataset[candidate]
-				break
-		else:
-			if label in labels:
-				print 'DEBUG: malicious user.'
-				print 'Thank you for playing!'
-				exit()
-			else:
-				result=[-1]*len(dataset[0]) if dataset else []
-				labels.append(label)
-				dataset.append(result)
-
-	update(result,answers)
-	data.save(questions,labels,dataset)
-	print 'Thank you for playing!'
+		print 'DEBUG: malicious user'
+		print 'Thank you for playing!'
+		exit(0)
