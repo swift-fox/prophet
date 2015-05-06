@@ -63,7 +63,7 @@ def round_A(candidates,answers,dataset):
 		if answers[index]!=-1:
 			candidates=eliminate(candidates,answers,dataset)
 
-		print candidates
+		#print candidates
 	return candidates,answers
 
 def distance(a,b):
@@ -79,7 +79,8 @@ def round_B(answers,dataset):
 		vector[index]=answer
 
 	candidates=[i for i,data in enumerate(dataset) if distance(vector,data)<=cfg.distance]
-	print "Round B candidates:"+str(candidates)
+
+	#print "Round B candidates:"+str(candidates)
 
 	_answers={}
 	for index in answers:

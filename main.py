@@ -68,11 +68,12 @@ def learn(answers,candidates,label,labels,questions,dataset):
 	if n<cfg.max_questions:
 		print 'Please input a question that is true for '+label+':'
 		question=raw_input().strip()
-		questions.append(question)
-
-		for data in dataset:
-			data.append(-1)
-		feature[-1]=1
+		if question:
+			questions.append(question)
+	
+			for data in dataset:
+				data.append(-1)
+			feature[-1]=1
 
 	merge_answer(feature,answers)
 
